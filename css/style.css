@@ -1,0 +1,206 @@
+/* ==========================================================================
+   SYNCHROPHOTO — feuille de style
+   Direction artistique : carnet de terrain / instrument topographique.
+   Le motif de courbes de niveau et la lecture "instrument" (mono pour les
+   coordonnées) sont la signature visuelle de l'outil.
+   ========================================================================== */
+
+:root{
+  /* --- Palette nommée --- */
+  --encre:        #1C2620;   /* texte principal, quasi noir-pin */
+  --encre-douce:  #44524A;   /* texte secondaire */
+  --papier:       #EEF1EA;   /* fond clair, papier de relevé (pas de crème) */
+  --papier-fort:  #DCE3D8;   /* fond de carte/panneaux */
+  --trace-sentier:#9C5F26;   /* accent brun/ocre — courbes de niveau, balises */
+  --lac-gps:      #1F6F8B;   /* accent bleu — tout ce qui touche au GPS/temps */
+  --mousse:       #4F6F52;   /* succès / piste validée */
+  --alerte:       #B5482C;   /* erreur */
+  --jaune-balise: #D9A52C;   /* avertissement */
+  --ligne:        #C3CBBE;   /* hairlines */
+  --blanc:        #FFFFFF;
+
+  /* --- Typographie --- */
+  --f-affichage: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
+  --f-texte: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-instrument: "IBM Plex Mono", "SF Mono", Consolas, monospace;
+
+  --radius: 3px;
+  --ombre: 0 1px 2px rgba(28,38,32,.08), 0 2px 8px rgba(28,38,32,.06);
+}
+
+@font-face{
+  font-family:"Space Grotesk"; font-weight:500 700; font-display:swap;
+  src:local("Space Grotesk");
+}
+
+*{ box-sizing:border-box; }
+html,body{ margin:0; padding:0; }
+body{
+  background:var(--papier);
+  color:var(--encre);
+  font-family:var(--f-texte);
+  font-size:15px;
+  line-height:1.5;
+  min-height:100vh;
+}
+h1,h2,h3{ font-family:var(--f-affichage); font-weight:700; margin:0 0 .4em; letter-spacing:-0.01em; }
+code,.mono{ font-family:var(--f-instrument); }
+a{ color:var(--lac-gps); }
+
+button{
+  font-family:var(--f-texte);
+  font-weight:600;
+  font-size:.92em;
+  border:1px solid var(--encre);
+  background:var(--blanc);
+  color:var(--encre);
+  border-radius:var(--radius);
+  padding:.55em 1.1em;
+  cursor:pointer;
+  transition:transform .08s ease, background .15s ease;
+}
+button:hover{ background:var(--papier-fort); }
+button:active{ transform:translateY(1px); }
+button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focus-visible{
+  outline:2px solid var(--lac-gps);
+  outline-offset:2px;
+}
+button.primaire{ background:var(--lac-gps); color:var(--blanc); border-color:var(--lac-gps); }
+button.primaire:hover{ background:#195a72; }
+button.primaire:disabled, button:disabled{ opacity:.45; cursor:not-allowed; }
+button.discrete{ border-color:transparent; background:transparent; text-decoration:underline; }
+
+input[type="file"],input[type="number"],input[type="text"],select{
+  font-family:var(--f-instrument);
+  font-size:.92em;
+  border:1px solid var(--encre-douce);
+  border-radius:var(--radius);
+  padding:.5em .6em;
+  background:var(--blanc);
+  color:var(--encre);
+}
+
+/* ---------- En-tête : motif de courbes de niveau ---------- */
+.entete{
+  position:relative;
+  background:var(--encre);
+  color:var(--papier);
+  overflow:hidden;
+  padding:1.4rem 1.4rem 1.6rem;
+}
+.entete::before{
+  content:"";
+  position:absolute; inset:0;
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="240" viewBox="0 0 600 240"><g fill="none" stroke="%23EEF1EA" stroke-opacity="0.10" stroke-width="1.4"><path d="M-20 200 Q150 120 300 190 T 640 150"/><path d="M-20 160 Q150 90 300 150 T 640 110"/><path d="M-20 120 Q150 60 300 110 T 640 70"/><path d="M-20 80 Q150 30 300 70 T 640 30"/><path d="M-20 40 Q150 0 300 30 T 640 -10"/></g></svg>');
+  background-repeat:no-repeat; background-size:cover; opacity:.9;
+}
+.entete-contenu{ position:relative; display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; }
+.marque{ display:flex; align-items:center; gap:.6rem; }
+.marque svg{ flex:none; }
+.marque h1{ font-size:1.35rem; color:var(--papier); }
+.marque .sous-titre{ font-size:.78rem; color:#B9C7BC; font-family:var(--f-instrument); letter-spacing:.02em; }
+.etat-sw{ font-family:var(--f-instrument); font-size:.74rem; color:#B9C7BC; }
+.etat-sw.maj{ color:var(--jaune-balise); cursor:pointer; text-decoration:underline; }
+
+/* ---------- Mise en page générale ---------- */
+.app{ display:grid; grid-template-columns:240px 1fr; min-height:calc(100vh - 92px); }
+@media (max-width:880px){ .app{ grid-template-columns:1fr; } }
+
+/* ---------- Stepper (étapes numérotées — séquence réelle de travail) ---------- */
+.etapes{
+  background:var(--papier-fort);
+  border-right:1px solid var(--ligne);
+  padding:1rem .6rem;
+}
+@media (max-width:880px){
+  .etapes{ display:flex; overflow-x:auto; border-right:none; border-bottom:1px solid var(--ligne); gap:.3rem; padding:.6rem; }
+}
+.etape-bouton{
+  display:flex; align-items:flex-start; gap:.6rem;
+  width:100%; text-align:left;
+  background:transparent; border:none; border-radius:var(--radius);
+  padding:.65rem .6rem; margin-bottom:.15rem;
+  color:var(--encre-douce); cursor:pointer;
+}
+@media (max-width:880px){ .etape-bouton{ width:auto; white-space:nowrap; } }
+.etape-bouton:hover{ background:var(--ligne); }
+.etape-bouton.active{ background:var(--blanc); color:var(--encre); box-shadow:var(--ombre); }
+.etape-num{
+  font-family:var(--f-instrument); font-weight:700; font-size:.8rem;
+  width:1.6em; height:1.6em; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  border:1.5px solid currentColor; flex:none;
+}
+.etape-bouton.fait .etape-num{ background:var(--mousse); border-color:var(--mousse); color:var(--blanc); }
+.etape-texte b{ display:block; font-size:.88rem; }
+.etape-texte span{ font-size:.74rem; color:var(--encre-douce); }
+
+/* ---------- Contenu principal ---------- */
+.contenu{ padding:1.2rem 1.4rem 3rem; max-width:1000px; }
+.panneau{ display:none; }
+.panneau.active{ display:block; animation:apparition .25s ease; }
+@keyframes apparition{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;} }
+
+.carte-info{
+  display:flex; gap:.5rem; align-items:baseline; margin:0 0 .3rem;
+}
+.carte-info h2{ font-size:1.1rem; margin:0; }
+.eyebrow{
+  font-family:var(--f-instrument); font-size:.72rem; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--trace-sentier);
+}
+.description{ color:var(--encre-douce); margin:0 0 1rem; max-width:62ch; }
+
+.bloc{
+  background:var(--blanc); border:1px solid var(--ligne); border-radius:var(--radius);
+  padding:1rem 1.1rem; margin-bottom:1rem; box-shadow:var(--ombre);
+}
+.ligne-fine{ border:none; border-top:1px dashed var(--ligne); margin:1rem 0; }
+
+.zone-depot{
+  border:1.5px dashed var(--lac-gps); border-radius:var(--radius);
+  padding:1.4rem; text-align:center; background:#F2F7F8; color:var(--encre-douce);
+  cursor:pointer;
+}
+.zone-depot:hover{ background:#E9F2F4; }
+.zone-depot.survol{ background:#DCEEF2; border-style:solid; }
+.zone-depot strong{ color:var(--encre); }
+
+.lecture{
+  font-family:var(--f-instrument); background:var(--encre); color:var(--papier);
+  border-radius:var(--radius); padding:.85rem 1rem; display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:.6rem 1.2rem;
+}
+.lecture div span{ display:block; font-size:.68rem; color:#9DB0A4; text-transform:uppercase; letter-spacing:.05em; }
+.lecture div b{ font-size:1rem; font-weight:600; }
+
+#carte{ width:100%; height:420px; border-radius:var(--radius); border:1px solid var(--ligne); background:#dde; }
+
+table.resultats{ width:100%; border-collapse:collapse; font-size:.86rem; }
+table.resultats th,table.resultats td{ text-align:left; padding:.5rem .6rem; border-bottom:1px solid var(--ligne); vertical-align:middle; }
+table.resultats th{ font-family:var(--f-instrument); font-size:.72rem; text-transform:uppercase; letter-spacing:.04em; color:var(--encre-douce); }
+table.resultats td.coord{ font-family:var(--f-instrument); font-size:.82rem; }
+.puce{ display:inline-flex; align-items:center; gap:.35em; font-size:.78rem; font-weight:600; padding:.18em .55em; border-radius:99px; }
+.puce.ok{ background:#E4EEE0; color:var(--mousse); }
+.puce.attente{ background:#EFEAD9; color:var(--trace-sentier); }
+.puce.erreur{ background:#F4DFD6; color:var(--alerte); }
+
+.actions{ display:flex; gap:.6rem; flex-wrap:wrap; margin-top:1rem; }
+
+.miniature{ width:48px; height:48px; object-fit:cover; border-radius:2px; border:1px solid var(--ligne); background:var(--papier-fort); display:block; }
+
+.choix-methode{ display:grid; grid-template-columns:1fr 1fr; gap:.8rem; }
+@media (max-width:640px){ .choix-methode{ grid-template-columns:1fr; } }
+.carte-methode{
+  border:1.5px solid var(--ligne); border-radius:var(--radius); padding:.9rem; cursor:pointer; background:var(--blanc);
+}
+.carte-methode.selectionne{ border-color:var(--lac-gps); box-shadow:0 0 0 3px rgba(31,111,139,.12); }
+.carte-methode h3{ font-size:.95rem; margin-bottom:.25rem; }
+.carte-methode p{ margin:0; font-size:.82rem; color:var(--encre-douce); }
+
+.avertissement{ background:#FBF1DD; border:1px solid var(--jaune-balise); border-radius:var(--radius); padding:.7rem .9rem; font-size:.86rem; color:#6B5113; }
+.erreur-bloc{ background:#FBE3DA; border:1px solid var(--alerte); border-radius:var(--radius); padding:.7rem .9rem; font-size:.86rem; color:#7C2A14; }
+
+.pied{ text-align:center; color:var(--encre-douce); font-size:.78rem; padding:1.5rem; }
+
+.visually-hidden{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }

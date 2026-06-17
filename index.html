@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Synchrophoto — géolocaliser des photos sur une trace GPX/KML</title>
+<meta name="description" content="PWA hors-ligne : géolocalise des photos (JPEG, RAW, ARW) à partir d'une trace GPX/KML de randonnée, avec vérification sur fond de carte OSM ou IGN.">
+<meta name="theme-color" content="#1C2620">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon192.png">
+<link rel="apple-touch-icon" href="icons/icon192.png">
+<link rel="stylesheet" href="lib/leaflet/leaflet.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="entete">
+  <div class="entete-contenu">
+    <div class="marque">
+      <svg width="34" height="34" viewBox="0 0 34 34" fill="none" aria-hidden="true">
+        <circle cx="17" cy="17" r="16" stroke="#EEF1EA" stroke-width="1.4" opacity=".5"/>
+        <circle cx="17" cy="17" r="10.5" stroke="#EEF1EA" stroke-width="1.4" opacity=".75"/>
+        <circle cx="17" cy="14" r="4.2" fill="#D9A52C"/>
+        <path d="M17 18.2 L17 27" stroke="#EEF1EA" stroke-width="1.6"/>
+      </svg>
+      <div>
+        <h1>Synchrophoto</h1>
+        <div class="sous-titre">trace GPX/KML → géolocalisation EXIF des photos</div>
+      </div>
+    </div>
+    <div id="etat-sw" class="etat-sw">mode hors-ligne disponible</div>
+  </div>
+</header>
+
+<div class="app">
+
+  <nav class="etapes" aria-label="Étapes du traitement">
+    <button class="etape-bouton active" data-etape="1">
+      <span class="etape-num">1</span>
+      <span class="etape-texte"><b>Trace</b><span>Charger le GPX / KML</span></span>
+    </button>
+    <button class="etape-bouton" data-etape="2">
+      <span class="etape-num">2</span>
+      <span class="etape-texte"><b>Photos</b><span>JPEG, RAW, ARW…</span></span>
+    </button>
+    <button class="etape-bouton" data-etape="3">
+      <span class="etape-num">3</span>
+      <span class="etape-texte"><b>Méthode</b><span>Direct ou photo témoin</span></span>
+    </button>
+    <button class="etape-bouton" data-etape="4">
+      <span class="etape-num">4</span>
+      <span class="etape-texte"><b>Géolocalisation</b><span>Calcul + vérification carte</span></span>
+    </button>
+    <button class="etape-bouton" data-etape="5">
+      <span class="etape-num">5</span>
+      <span class="etape-texte"><b>Export</b><span>Téléchargement des JPEG</span></span>
+    </button>
+  </nav>
+
+  <main class="contenu">
+
+    <!-- ÉTAPE 1 : TRACE -->
+    <section class="panneau active" id="panneau-1" aria-labelledby="t1">
+      <div class="carte-info"><span class="eyebrow">Étape 1</span></div>
+      <h2 id="t1">Charger la trace de la randonnée</h2>
+      <p class="description">Un fichier <code>.gpx</code> (recommandé) ou <code>.kml</code> contenant les points horodatés de votre parcours. Sans horodatage sur la trace, la géolocalisation par le temps est impossible.</p>
+
+      <div class="bloc">
+        <div class="zone-depot" id="depot-trace" tabindex="0" role="button" aria-describedby="aide-trace">
+          <strong>Cliquer ou déposer un fichier .gpx / .kml ici</strong>
+          <div id="aide-trace" style="margin-top:.3rem;">un seul fichier de trace à la fois</div>
+        </div>
+        <input type="file" id="input-trace" accept=".gpx,.kml,application/gpx+xml,application/vnd.google-earth.kml+xml" class="visually-hidden">
+
+        <div id="trace-resume" style="margin-top:1rem;"></div>
+      </div>
+
+      <div class="bloc">
+        <div id="carte" role="img" aria-label="Carte de vérification de la trace et des photos géolocalisées"></div>
+        <div style="margin-top:.5rem; font-size:.8rem; color:var(--encre-douce);">
+          Fond de carte :
+          <select id="select-fond">
+            <option value="osm">OpenStreetMap</option>
+            <option value="ign">IGN Plan V2</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="primaire" id="bouton-vers-2" disabled>Continuer → Photos</button>
+      </div>
+    </section>
+
+    <!-- ÉTAPE 2 : PHOTOS -->
+    <section class="panneau" id="panneau-2" aria-labelledby="t2">
+      <div class="carte-info"><span class="eyebrow">Étape 2</span></div>
+      <h2 id="t2">Charger les photos à géolocaliser</h2>
+      <p class="description">JPEG, ou RAW d'appareil Minolta/Sony (<code>.ARW</code>, <code>.MRW</code>…). Les fichiers RAW d'origine ne sont jamais modifiés : seul un JPEG dérivé, suffixé <code>_loc</code>, est produit.</p>
+
+      <div class="bloc">
+        <div class="zone-depot" id="depot-photos" tabindex="0" role="button">
+          <strong>Cliquer ou déposer une ou plusieurs photos ici</strong>
+          <div style="margin-top:.3rem;">.jpg, .jpeg, .arw, .mrw — plusieurs fichiers possibles</div>
+        </div>
+        <input type="file" id="input-photos" accept=".jpg,.jpeg,.arw,.mrw,.raw,image/jpeg" multiple class="visually-hidden">
+
+        <div id="liste-photos" style="margin-top:1rem;"></div>
+      </div>
+
+      <div class="actions">
+        <button id="bouton-vers-1b">← Trace</button>
+        <button class="primaire" id="bouton-vers-3" disabled>Continuer → Méthode</button>
+      </div>
+    </section>
+
+    <!-- ÉTAPE 3 : MÉTHODE -->
+    <section class="panneau" id="panneau-3" aria-labelledby="t3">
+      <div class="carte-info"><span class="eyebrow">Étape 3</span></div>
+      <h2 id="t3">Choisir la méthode de synchronisation</h2>
+      <p class="description">L'horloge de l'appareil photo n'est presque jamais rigoureusement calée sur l'heure GPS. Deux approches sont possibles pour calculer le décalage à appliquer.</p>
+
+      <div class="choix-methode">
+        <div class="carte-methode selectionne" id="methode-direct" data-methode="direct">
+          <h3>① Réglage direct</h3>
+          <p>L'heure de l'appareil est supposée correcte (ou vous connaissez le décalage). Vous pouvez saisir une correction manuelle en secondes.</p>
+        </div>
+        <div class="carte-methode" id="methode-temoin" data-methode="temoin">
+          <h3>② Photo témoin</h3>
+          <p>Vous désignez une photo dont l'emplacement exact sur la trace est connu. Synchrophoto calcule alors automatiquement le décalage appareil ↔ GPS et l'applique à toutes les autres photos.</p>
+        </div>
+      </div>
+
+      <div class="bloc" id="bloc-direct">
+        <h3 style="font-size:.95rem; margin-bottom:.5rem;">Correction manuelle (optionnelle)</h3>
+        <label class="mono" style="font-size:.82rem;">Décalage à ajouter à l'heure de l'appareil, en secondes (peut être négatif) :</label><br>
+        <input type="number" id="offset-manuel" value="0" step="1" style="width:8em; margin-top:.4rem;">
+      </div>
+
+      <div class="bloc" id="bloc-temoin" style="display:none;">
+        <h3 style="font-size:.95rem; margin-bottom:.4rem;">1. Choisir la photo témoin</h3>
+        <select id="select-temoin" style="width:100%; max-width:420px;"></select>
+
+        <h3 style="font-size:.95rem; margin:1rem 0 .4rem;">2. Cliquer son emplacement exact sur la trace (carte ci-dessous)</h3>
+        <div id="carte-temoin" style="height:340px; border-radius:var(--radius); border:1px solid var(--ligne);"></div>
+        <p id="temoin-resultat" style="margin-top:.6rem;"></p>
+      </div>
+
+      <div class="actions">
+        <button id="bouton-vers-2b">← Photos</button>
+        <button class="primaire" id="bouton-vers-4" disabled>Continuer → Géolocalisation</button>
+      </div>
+    </section>
+
+    <!-- ÉTAPE 4 : GÉOLOCALISATION -->
+    <section class="panneau" id="panneau-4" aria-labelledby="t4">
+      <div class="carte-info"><span class="eyebrow">Étape 4</span></div>
+      <h2 id="t4">Calcul et vérification</h2>
+      <p class="description">Chaque photo est positionnée par interpolation sur la trace, à l'heure corrigée. Vérifiez les marqueurs sur la carte avant l'export.</p>
+
+      <div class="lecture" id="lecture-decalage">
+        <div><span>Méthode</span><b id="lecture-methode">—</b></div>
+        <div><span>Décalage appliqué</span><b id="lecture-offset">—</b></div>
+        <div><span>Photos à traiter</span><b id="lecture-nb">—</b></div>
+      </div>
+
+      <div class="actions" style="margin:1rem 0;">
+        <button class="primaire" id="bouton-geolocaliser">Géolocaliser les photos</button>
+      </div>
+
+      <div class="bloc">
+        <div id="carte-verif" style="height:420px; border-radius:var(--radius); border:1px solid var(--ligne);"></div>
+        <div style="margin-top:.5rem; font-size:.8rem; color:var(--encre-douce);">
+          Fond de carte :
+          <select id="select-fond-verif">
+            <option value="osm">OpenStreetMap</option>
+            <option value="ign">IGN Plan V2</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="bloc" style="overflow-x:auto;">
+        <table class="resultats" id="table-resultats">
+          <thead><tr><th>Photo</th><th>Fichier</th><th>Heure corrigée (UTC)</th><th>Latitude</th><th>Longitude</th><th>Altitude</th><th>Statut</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="actions">
+        <button id="bouton-vers-3b">← Méthode</button>
+        <button class="primaire" id="bouton-vers-5" disabled>Continuer → Export</button>
+      </div>
+    </section>
+
+    <!-- ÉTAPE 5 : EXPORT -->
+    <section class="panneau" id="panneau-5" aria-labelledby="t5">
+      <div class="carte-info"><span class="eyebrow">Étape 5</span></div>
+      <h2 id="t5">Export des photos géolocalisées</h2>
+      <p class="description">Les fichiers RAW d'origine restent intacts sur votre appareil. Seuls les JPEG <code>_loc</code> ci-dessous, porteurs des données GPS EXIF, sont produits par Synchrophoto.</p>
+
+      <div class="bloc" id="resume-export"></div>
+
+      <div class="actions">
+        <button id="bouton-vers-4b">← Géolocalisation</button>
+        <button class="primaire" id="bouton-zip">Télécharger l'archive .zip</button>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer class="pied">Synchrophoto — application web progressive, traitement 100&nbsp;% local dans le navigateur. Aucune photo n'est envoyée à un serveur.</footer>
+
+<script src="lib/leaflet/leaflet.js"></script>
+<script src="lib/exifr/exifr.js"></script>
+<script src="lib/piexifjs/piexif.js"></script>
+<script src="lib/jszip/jszip.min.js"></script>
+<script src="js/gpxkml.js"></script>
+<script src="js/geo-utils.js"></script>
+<script src="js/exif-io.js"></script>
+<script src="js/map-view.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
