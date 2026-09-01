@@ -1,6 +1,5 @@
 /* ==========================================================================
    sw.js — Service Worker "brise-cache" de Synchrophoto.
-
    Stratégie :
    - CACHE_VERSION doit être incrémentée à chaque déploiement. Le navigateur
      détecte alors un fichier sw.js différent, installe une nouvelle instance,
@@ -12,9 +11,7 @@
      cache ne sert que de repli hors-ligne. Ainsi, dès qu'une connexion est
      disponible, l'utilisateur reçoit la version la plus fraîche possible.
    ========================================================================== */
-
-const CACHE_VERSION = 'synchrophoto-v1';
-
+const CACHE_VERSION = 'synchrophoto-v2'; // v2 : correction du parsing gx:Track dans gpxkml.js
 const RESSOURCES_APPLICATION = [
   './',
   './index.html',
@@ -38,7 +35,6 @@ const RESSOURCES_APPLICATION = [
   './icons/icon192.png',
   './icons/icon512.png'
 ];
-
 self.addEventListener('install', (evt) => {
   evt.waitUntil(
     caches.open(CACHE_VERSION)
@@ -46,7 +42,6 @@ self.addEventListener('install', (evt) => {
       .then(() => self.skipWaiting())
   );
 });
-
 self.addEventListener('activate', (evt) => {
   evt.waitUntil(
     caches.keys()
@@ -56,22 +51,18 @@ self.addEventListener('activate', (evt) => {
       .then(() => self.clients.claim())
   );
 });
-
 // Permet à la page (app.js) de déclencher immédiatement le passage à la
 // nouvelle version, sans attendre la fermeture de tous les onglets.
 self.addEventListener('message', (evt) => {
   if (evt.data === 'SAUTER_ATTENTE') self.skipWaiting();
 });
-
 self.addEventListener('fetch', (evt) => {
   const requete = evt.request;
   if (requete.method !== 'GET') return;
-
   // Les tuiles de fond de carte (OSM / IGN) ne sont pas mises en cache ici :
   // elles relèvent de services tiers et seraient vite obsolètes/volumineuses.
   const url = new URL(requete.url);
   if (url.origin !== self.location.origin) return;
-
   evt.respondWith(
     fetch(requete)
       .then((reponse) => {
