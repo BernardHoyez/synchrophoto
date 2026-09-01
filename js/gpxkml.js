@@ -34,24 +34,44 @@ SP.gpxkml = (function () {
   // Supporte deux variantes :
   //  - gx:Track (avec <when> + <gx:coord>) -> horodaté, idéal
   //  - LineString simple <coordinates>lon,lat,alt ...</coordinates> -> pas de temps
+  //
+  // IMPORTANT : les <when>/<gx:coord> sont comptés PAR bloc <gx:Track>, et non
+  // sur tout le document. Un KML peut en effet contenir, en plus de la trace,
+  // des Placemarks isolés (waypoints) portant chacun leur propre
+  // <TimeStamp><when>...</when></TimeStamp> ; ceux-ci ne doivent pas entrer
+  // dans le comptage des points de la trace, sous peine de fausser la
+  // comparaison whens.length === coords.length et de faire perdre
+  // l'horodatage alors qu'il est bien présent.
   function parseKML(xmlDoc) {
-    const whens = Array.from(xmlDoc.getElementsByTagNameNS('*', 'when'));
-    const coords = Array.from(xmlDoc.getElementsByTagNameNS('*', 'coord'));
+    const tracks = Array.from(xmlDoc.getElementsByTagNameNS('*', 'Track'));
+    let points = [];
 
-    if (whens.length && coords.length && whens.length === coords.length) {
-      const points = whens.map((w, i) => {
-        const t = new Date(w.textContent.trim());
-        const parts = coords[i].textContent.trim().split(/\s+/).map(Number);
-        const [lon, lat, alt] = parts;
-        return { lat, lon, ele: alt || 0, time: isNaN(t.getTime()) ? null : t };
-      }).filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lon));
+    tracks.forEach(track => {
+      // Uniquement les <when> et <gx:coord> enfants DIRECTS de ce Track,
+      // pour ignorer tout TimeStamp de waypoint qui traînerait ailleurs.
+      const whens = Array.from(track.children).filter(el => el.localName === 'when');
+      const coords = Array.from(track.children).filter(el => el.localName === 'coord');
+
+      if (whens.length && coords.length && whens.length === coords.length) {
+        whens.forEach((w, i) => {
+          const t = new Date(w.textContent.trim());
+          const parts = coords[i].textContent.trim().split(/\s+/).map(Number);
+          const [lon, lat, alt] = parts;
+          if (Number.isFinite(lat) && Number.isFinite(lon)) {
+            points.push({ lat, lon, ele: alt || 0, time: isNaN(t.getTime()) ? null : t });
+          }
+        });
+      }
+    });
+
+    if (points.length) {
       const hasTime = points.every(p => p.time);
       return { points, hasTime, format: 'kml-gx' };
     }
 
-    // Repli : LineString sans horodatage par point
+    // Repli : LineString sans horodatage par point (aucun gx:Track exploitable)
     const coordNodes = Array.from(xmlDoc.getElementsByTagNameNS('*', 'coordinates'));
-    let points = [];
+    points = [];
     coordNodes.forEach(node => {
       const tuples = node.textContent.trim().split(/\s+/);
       tuples.forEach(t => {
